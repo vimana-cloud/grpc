@@ -1,0 +1,79 @@
+name: Publish Plugin Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description:
+          Existing tag at which to publish the release (always run the workflow from master).
+        required: true
+        type: string
+permissions:
+  # Necessary to create a release and upload assets.
+  contents: write
+jobs:
+  plugins:
+    strategy:
+      matrix:
+        cpu:
+          - x86_64
+          - aarch64
+        os:
+          - linux
+          - macos
+    runs-on: ${{ matrix.os == 'macos' && 'macos-latest' || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Fetches all history (necessary for cherry-picking) and tags.
+          fetch-depth: 0
+      - name: Cherry-pick Tag
+        run: |
+          # Assume the top commit of master is a single fixup supporting cross-compilation.
+          # Cherry-pick it onto the release tag.
+          fixup="$(git rev-parse master)"
+
+          # Git complains if we don't have an identity
+          git config user.email "foo@bar.baz"
+          git config user.name "GitHub Action"
+
+          git checkout '${{ inputs.tag }}'
+          git cherry-pick "${fixup}"
+      - name: Build Plugins
+        run: |
+          bazel build --platforms='//:${{ matrix.cpu }}-${{ matrix.os }}' \
+            //src/compiler:grpc_cpp_plugin \
+            //src/compiler:grpc_csharp_plugin \
+            //src/compiler:grpc_node_plugin \
+            //src/compiler:grpc_objective_c_plugin \
+            //src/compiler:grpc_php_plugin \
+            //src/compiler:grpc_python_plugin \
+            //src/compiler:grpc_ruby_plugin
+      - name: Bundle Plugins
+        run: |
+          # Copy the binaries into a new folder with appropriate names.
+          bazel_bin="$(bazel info bazel-bin)"
+          mkdir plugins-bin
+          for lang in cpp csharp node objective_c php python ruby
+          do cp "${bazel_bin}/src/compiler/grpc_${lang}_plugin_binary" "plugins-bin/protoc-gen-grpc_${lang}"
+          done
+
+          # Bundle them up.
+          pushd plugins-bin
+          tar -czf 'protoc-plugins-${{ matrix.cpu }}-${{ matrix.os }}.tar.gz' *
+          popd
+      - name: Create Release
+        # Fails harmlessly if another platform did it first.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create '${{ inputs.tag }}' \
+            --title '${{ inputs.tag }}' \
+            --notes 'See [upstream](https://github.com/grpc/grpc/releases/tag/${{ inputs.tag }}).'
+      - name: Upload Plugins
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload '${{ inputs.tag }}' \
+            'plugins-bin/protoc-plugins-${{ matrix.cpu }}-${{ matrix.os }}.tar.gz'

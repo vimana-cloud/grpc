@@ -115,3 +115,18 @@ bind(
     name = "madler_zlib",
     actual = "@zlib//:zlib",
 )
+
+# Build with musl to improve compatibility.
+# https://github.com/bazel-contrib/musl-toolchain
+
+http_archive(
+    name = "musl_toolchains",
+    sha256 = "581d280fe9b7fa2537d00359807462875a5153d67d2afa388a587f2943abec6d",
+    url = "https://github.com/bazel-contrib/musl-toolchain/releases/download/v0.1.27/musl_toolchain-v0.1.27.tar.gz",
+)
+
+load("@musl_toolchains//:repositories.bzl", "load_musl_toolchains")
+load("@musl_toolchains//:toolchains.bzl", "register_musl_toolchains")
+
+load_musl_toolchains()
+register_musl_toolchains()
