@@ -156,3 +156,18 @@ bind(
 #    podspec_url = "https://raw.githubusercontent.com/CocoaPods/Specs/master/Specs/2/e/1/CronetFramework/0.0.5/CronetFramework.podspec.json",
 #    url = "https://storage.googleapis.com/grpc-precompiled-binaries/cronet/Cronet.framework-v0.0.5.zip",
 #)
+
+# Build with musl to improve compatibility.
+# https://github.com/bazel-contrib/musl-toolchain
+
+http_archive(
+    name = "musl_toolchains",
+    sha256 = "86bf928e6b11e81d2d33ca8e044b875f1ed7c7016b607376dd5575db7342c31e",
+    url = "https://github.com/bazel-contrib/musl-toolchain/releases/download/v0.1.20/musl_toolchain-v0.1.20.tar.gz",
+)
+
+load("@musl_toolchains//:repositories.bzl", "load_musl_toolchains")
+load("@musl_toolchains//:toolchains.bzl", "register_musl_toolchains")
+
+load_musl_toolchains()
+register_musl_toolchains()
