@@ -1,8 +1,17 @@
 # gRPC – An RPC library and framework
 
-gRPC is a modern, open source, high-performance remote procedure call (RPC)
-framework that can run anywhere. gRPC enables client and server applications to
-communicate transparently, and simplifies the building of connected systems.
+## Fork for Pre-built Plugins
+
+This fork of [gRPC](https://github.com/grpc/grpc) exists for one purpose:
+to provide pre-built binaries of the Protobuf compiler plugins.
+Download them from the release artifacts.
+
+Do not submit pull requests here.
+Submit them [upstream](https://github.com/grpc/grpc)
+and they will eventually be incorporated into this fork as well.
+If there is a new release upstream
+and we have not published binaries for it yet,
+feel free to file a ticket here.
 
 <table>
   <tr>
