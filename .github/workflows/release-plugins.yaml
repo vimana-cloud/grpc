@@ -1,0 +1,46 @@
+name: Publish Plugin Binaries
+on:
+  release:
+    types: ['released']
+permissions:
+  # Necessary to upload a release asset:
+  contents: write
+jobs:
+  plugins:
+    strategy:
+      matrix:
+        cpu:
+          - x86_64
+          - aarch64
+        os:
+          - linux
+          - macos
+    runs-on: ${{ matrix.os == 'macos' && 'macos-latest' || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build Plugins
+        run: |
+          bazel build --platforms="//:${{ matrix.cpu }}-${{ matrix.os }}" \
+            //src/compiler:grpc_cpp_plugin \
+            //src/compiler:grpc_csharp_plugin \
+            //src/compiler:grpc_node_plugin \
+            //src/compiler:grpc_objective_c_plugin \
+            //src/compiler:grpc_php_plugin \
+            //src/compiler:grpc_python_plugin \
+            //src/compiler:grpc_ruby_plugin
+      - name: Upload Plugin Archive
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          bazel_bin="$(bazel info bazel-bin)"
+          mkdir plugins-bin
+          for lang in cpp csharp node objective_c php python ruby
+          do cp "${bazel_bin}/src/compiler/grpc_${lang}_plugin" "plugins-bin/protoc-gen-${lang}"
+          done
+          cd plugins-bin
+          asset_name="plugins-${{ matrix.cpu }}-${{ matrix.os }}.tar.gz"
+          tar -czf "${asset_name}" *
+          gh release upload "${RELEASE_TAG}" "${asset_name}"
