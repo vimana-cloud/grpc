@@ -170,4 +170,5 @@ load("@musl_toolchains//:repositories.bzl", "load_musl_toolchains")
 load("@musl_toolchains//:toolchains.bzl", "register_musl_toolchains")
 
 load_musl_toolchains()
+
 register_musl_toolchains()
